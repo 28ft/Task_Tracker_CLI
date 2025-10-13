@@ -3,22 +3,21 @@ import json
 import sys
 
 
-
 tasks = []
 
 
-def add_task():
-    tasks = load_tasks()
-    id = generate_ID()
-    title = input("Enter a title for your task: ")
-    description = input("Enter a description for your task: ")
-    status = "todo"
-    createdAt = now()
-    updatedAt = now()
-    new_task = {"id": id, "title": title, "description": description, "status": status, "createdAt": createdAt, "updatedAt": updatedAt}
-    tasks.append(new_task)
-    save_tasks(tasks)
-    print(f"✅ Task Added Successfully (ID: {id}).")
+def load_tasks():
+    try:
+        with open('tasks.json', 'r') as f:
+           return json.load(f)
+    
+    except FileNotFoundError:
+        return []
+
+
+def save_tasks(tasks):
+    with open('tasks.json', 'w') as f:
+        json.dump(tasks, f, indent=4)
 
 
 def now():
@@ -26,71 +25,133 @@ def now():
 
 
 def generate_ID():
-    return tasks.__len__() + 1
+    return tasks[-1]["id"] + 1 if tasks else 1 
+
+
+def add_task(description):
+    tasks = load_tasks()
+    id = generate_ID()
+    new_task = {"id": id, 
+                "description": description, 
+                "status": "todo", 
+                "createdAt": now(), 
+                "updatedAt": now()}
+    tasks.append(new_task)
+    save_tasks(tasks)
+    print(f"✅ Task Added Successfully (ID: {id}).")
 
 
 
-def show_task_list():
+def show_tasks_list(task_filter=None):
+    tasks = load_tasks()
+    if task_filter not in ["todo", "in-progress", "done", None]:
+        print("⚠️ Invalid status.")    
+        return   
+
+    if task_filter:
+        tasks = [t for t in tasks if tasks["status"] == task_filter]
+
+    if tasks:
+        for t in tasks:
+            print(f"[{t['id']}] {t['description']} ({t['status']})")
+            print(f"   Created: {t['createdAt']}  |  Updated: {t['updatedAt']}")
+            # print(f"ID: {t["id"]}, Description: {t["description"]}, status: {t["status"]}\n")
+
+    if not tasks:
+        print("📭 No Tasks Available.")
+        return
+
+
+
+def update_task(task_id, new_description):
     tasks = load_tasks()
     if tasks:
-        for idx,task in enumerate(tasks, start=1):
-            print(idx, task["title"])
-        
-    else:
-        print("📭 No Tasks Available.")
-
-
-
-def update_task():
-    show_task_list()
-    if tasks:
-        task_index = int(input('Enter the Index of your task to be updated: '))
-        if 0 <= task_index < tasks.__len__():
-            new_task_title = input('Enter your new title or (Press Enter to keep current title): ')
-            new_task_description = input('Enter your new description or (Press Enter to keep current description): ')
-            if new_task_title == "" :
-                pass
-            else: 
-                tasks[task_index]['title'] = new_task_title
+        for task in tasks:
+            if task["id"] == task_id:
+                task["description"] = new_description
+                task["updatedAt"] = now()
+                save_tasks()
+                print("✅ Task Updated")
+                return
             
-            if new_task_description == "" :
-                pass
-            else: 
-                tasks[task_index]['description'] == new_task_description
+        print("⚠️ Invalid ID.")
 
-            print("✅ Task Updated")
-        else:
-            print("⚠️ Invalid Index.")
     else:
         print("📭 No Tasks Available.")
 
 
 
-def delete_task():
-    show_task_list()
+def delete_task(task_id):
+    tasks = load_tasks()
     if tasks:
-        task_index = int(input('Enter the Index of the task to be deleted: '))
-        if 0 <= task_index < tasks.__len__():
-            deleted_task = tasks.pop(task_index)
-            print(f"🗑️ Task '{deleted_task['title']}' deleted successfully.")
-        else: 
+        new_tasks = [t for t in tasks if t["id"] != task_id]
+        if len(new_tasks) == len(tasks):
             print("⚠️ Invalid Index.")
+
+        else:
+            save_tasks(new_tasks)
+            print(f"🗑️ Task {task_id} deleted successfully")
+    
     else:
         print("📭 No Tasks Available.")
 
 
-def load_tasks():
-    try:
-        with open('tasks.json', 'r') as f:
-            tasks.append(json.load(f))
+def mark_status(task_id, new_status):
+    tasks = load_tasks()
+    if tasks:
+        for task in tasks:
+            if task["id"] == task_id:
+                task["status"] = new_status
+                task["updatedAt"] = now()
+                save_tasks(tasks)
+                print(f"Task {task_id} marked as {new_status}")
+                return
+        print("⚠️ Invalid Index.")
+
+    else:
+        print("📭 No Tasks Available.")
+
+
+def main():
+    args = sys.argv[1:]
+
+    if not args:
+        print("\nUsage:")
+        print("  add \"task description\"")
+        print("  update <id> \"new description\"")
+        print("  delete <id>")
+        print("  mark-in-progress <id>")
+        print("  mark-done <id>")
+        print("  list [status]\n")
+        return
     
-    except FileNotFoundError:
-        return []
+    cmd = args[0]
 
-def save_tasks():
-    with open('tasks.json', 'w') as f:
-        json.dump(tasks[0], f, indent=4)
+    if cmd == "add":
+        description = " ".join(args[1:])
+        if not description:
+            print("Error: description required")
+            return
+        add_task(description)
 
+    elif cmd == "update":
+        update_task(int(args[1]), " ".join(args[2:]))
 
-# load_tasks()
-print(tasks)
+    elif cmd == "delete":
+        delete_task(int(args[1]))
+
+    elif cmd == "mark-in-progress":
+        mark_status(int(args[1], "in-progress")) 
+
+    elif cmd == "mark-done":
+        mark_status(int(args[1]), "done")
+
+    elif cmd == "list":
+        show_tasks_list(args[1] if len(args) > 1 else None)
+
+    else:
+        print("Unknown command")
+
+        
+if __name__ == "__main__" :
+    main()
