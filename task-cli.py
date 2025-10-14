@@ -9,7 +9,11 @@ tasks = []
 def load_tasks():
     try:
         with open('tasks.json', 'r') as f:
-           return json.load(f)
+           data = json.load(f)
+        
+        if isinstance(data, dict):
+            return [data]
+        return data
     
     except FileNotFoundError:
         return []
@@ -24,13 +28,13 @@ def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def generate_ID():
-    return tasks[-1]["id"] + 1 if tasks else 1 
+# def generate_ID():
+#     return tasks[-1]["id"] + 1 if tasks else 1 
 
 
 def add_task(description):
     tasks = load_tasks()
-    id = generate_ID()
+    id = tasks[-1]["id"] + 1 if tasks else 1
     new_task = {"id": id, 
                 "description": description, 
                 "status": "todo", 
@@ -49,7 +53,7 @@ def show_tasks_list(task_filter=None):
         return   
 
     if task_filter:
-        tasks = [t for t in tasks if tasks["status"] == task_filter]
+        tasks = [t for t in tasks if t["status"] == task_filter]
 
     if tasks:
         for t in tasks:
@@ -66,16 +70,14 @@ def show_tasks_list(task_filter=None):
 def update_task(task_id, new_description):
     tasks = load_tasks()
     if tasks:
-        for task in tasks:
-            if task["id"] == task_id:
-                task["description"] = new_description
-                task["updatedAt"] = now()
-                save_tasks()
+        for t in tasks:
+            if t["id"] == task_id:
+                t["description"] = new_description
+                t["updatedAt"] = now()
+                save_tasks(tasks)
                 print("✅ Task Updated")
                 return
-            
         print("⚠️ Invalid ID.")
-
     else:
         print("📭 No Tasks Available.")
 
@@ -112,6 +114,12 @@ def mark_status(task_id, new_status):
         print("📭 No Tasks Available.")
 
 
+def delete_all():
+    tasks = load_tasks()
+    for t in tasks:
+        delete_task(t["id"])
+
+
 def main():
     args = sys.argv[1:]
 
@@ -140,6 +148,9 @@ def main():
     elif cmd == "delete":
         delete_task(int(args[1]))
 
+    elif cmd == "delete-all":
+        delete_all()
+
     elif cmd == "mark-in-progress":
         mark_status(int(args[1], "in-progress")) 
 
@@ -155,3 +166,21 @@ def main():
         
 if __name__ == "__main__" :
     main()
+
+# delete_all()
+
+# print(load_tasks())
+
+# save_tasks([{"id": generate_ID(), 
+#             "description": "shopping", 
+#             "status": "todo", 
+#             "createdAt": now(), 
+#             "updatedAt": now()}])
+
+# show_tasks_list()
+
+# update_task(1, "go to library")
+
+# delete_task(1)
+
+# mark_status(1, 'todo')
