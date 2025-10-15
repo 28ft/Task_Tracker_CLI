@@ -166,21 +166,3 @@ def main():
         
 if __name__ == "__main__" :
     main()
-
-# delete_all()
-
-# print(load_tasks())
-
-# save_tasks([{"id": generate_ID(), 
-#             "description": "shopping", 
-#             "status": "todo", 
-#             "createdAt": now(), 
-#             "updatedAt": now()}])
-
-# show_tasks_list()
-
-# update_task(1, "go to library")
-
-# delete_task(1)
-
-# mark_status(1, 'todo')
